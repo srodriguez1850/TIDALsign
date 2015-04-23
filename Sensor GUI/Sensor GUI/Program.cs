@@ -22,16 +22,8 @@ namespace Sensor_GUI
 
             // See if this counts as a variable that can be passed as reference
             Arduino arduino = new Arduino();
-            arduino.SetComPort();
 
-            if (arduino.portStatus)
-            {
-                Application.Run(new Form1(arduino));
-            }
-            else
-            {
-                MessageBox.Show("Arduino not detected. Please ensure an Arduino is connected.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Stop);
-            }
+            Application.Run(new Form1(ref arduino));
         }
     }
     public class Arduino
@@ -80,26 +72,13 @@ namespace Sensor_GUI
                 buffer[1] = Convert.ToByte('I');
                 buffer[2] = Convert.ToByte('!');
 
-                int intReturnASCII = 0;
-
                 // Test port, open and send handshake
                 currentPort.Open();
                 currentPort.Write(buffer, 0, 3);
-                Thread.Sleep(3000);
-
-                int count = currentPort.BytesToRead;
-                string returnMessage = "";
+                Thread.Sleep(100);
 
                 // Parse response
-                while (count > 0)
-                {
-                    intReturnASCII = currentPort.ReadByte();
-                    returnMessage += Convert.ToChar(intReturnASCII);
-                    count--;
-                }
-
-                // Close port
-                currentPort.Close();
+                string returnMessage = Convert.ToString(currentPort.ReadExisting());
 
                 // Check if Arduino responded
                 if (returnMessage.Contains("HELLO FROM ARDUINO"))
@@ -108,6 +87,8 @@ namespace Sensor_GUI
                 }
                 else
                 {
+                    // Close port if no response
+                    currentPort.Close();
                     return false;
                 }
             }
@@ -116,7 +97,18 @@ namespace Sensor_GUI
                 return false;
             }
         }
+        public int getAnalogRead()
+        {
+            byte[] command = new byte[3];
+            command[0] = Convert.ToByte('R');   // Read Pin
+            command[1] = Convert.ToByte('A');   // Analog Pin
+            command[2] = Convert.ToByte('0');   // Pin 0
 
+            currentPort.Write(command, 0, 3);
+            Thread.Sleep(100);
+
+            return Convert.ToInt16(currentPort.ReadExisting());
+        }
         public bool portStatus
         {
             get
@@ -128,7 +120,14 @@ namespace Sensor_GUI
         {
             get
             {
-                return currentPort.PortName;
+                try
+                {
+                    return currentPort.PortName;
+                }
+                catch
+                {
+                    return "NULL";
+                }
             }
         }
     }
