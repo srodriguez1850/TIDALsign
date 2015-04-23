@@ -5,26 +5,6 @@ EECS 395: Tangible Interaction Design and Learning
 
 */
 
-// Status LED declaration
-int LED = 13;
-
-void setup() {
-  // Set LED
-  pinMode(LED, OUTPUT);
-  
-  // Open serial port at baud 19200
-  Serial.begin(19200);
-  
-  // Initialize pins to read
-  pinMode(A0, INPUT);
-  
-  // Blink for open serial port
-  digitalWrite(LED, HIGH);
-  delay(250);
-  digitalWrite(LED, LOW);
-  delay(250);
-}
-
 /*
 *  HELPER FUNCTIONS
 */
@@ -35,6 +15,29 @@ void serialFlush()
   {
     char a = Serial.read();
   }
+}
+
+// Status LED declaration
+int LED = 13;
+
+void setup() {
+  // LED high for initialization
+  digitalWrite(LED, HIGH);
+  
+  // Set LED
+  pinMode(LED, OUTPUT);
+  
+  // Open serial port at baud 19200
+  Serial.begin(19200);
+  
+  // Initialize pins to read
+  pinMode(A0, INPUT);
+  
+  // Flush serial to make sure it's empty
+  serialFlush();
+  
+  // LED low for initialization complete
+  digitalWrite(LED, LOW);
 }
 
 // Handshake bytes declarations
@@ -54,12 +57,9 @@ void loop() {
     // When the host sent a handshake, read bytes in
     if (Serial.available() == 3)
     {
-      handshake1 = Serial.read();
-      delay(10);
-      handshake2 = Serial.read();
-      delay(10);
-      handshake3 = Serial.read();
-      delay(10);
+      handshake1 = Serial.read(); delay(5);
+      handshake2 = Serial.read(); delay(5);
+      handshake3 = Serial.read(); delay(5);
       
       // Verify bytes are "HI!", if they are, establish connection
       if ((handshake1 == 'H') && (handshake2 == 'I') && (handshake3 == '!'))
@@ -75,12 +75,9 @@ void loop() {
   // Wait for commands
   if (Serial.available() == 3)
   {
-    commBuffer1 = Serial.read();
-    delay(10);
-    commBuffer2 = Serial.read();
-    delay(10);
-    commBuffer3 = Serial.read();
-    delay(10);
+    commBuffer1 = Serial.read(); delay(1);
+    commBuffer2 = Serial.read(); delay(1);
+    commBuffer3 = Serial.read(); delay(1);
     
     // Check what command was received
     // NOT WORKING, WILL HAVE TO WAIT
