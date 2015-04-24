@@ -7,3 +7,12 @@ C:\Users\Sebastian\Documents\GitHub\TIDALsign\Sensor GUI\Sensor GUI\obj\Debug\Se
 C:\Users\Sebastian\Documents\GitHub\TIDALsign\Sensor GUI\Sensor GUI\obj\Debug\Sensor GUI.csproj.GenerateResource.Cache
 C:\Users\Sebastian\Documents\GitHub\TIDALsign\Sensor GUI\Sensor GUI\obj\Debug\Sensor GUI.exe
 C:\Users\Sebastian\Documents\GitHub\TIDALsign\Sensor GUI\Sensor GUI\obj\Debug\Sensor GUI.pdb
+C:\Users\Sebastian\Documents\GitHub\TIDALsign\Sensor GUI - Windows\Sensor GUI\bin\Debug\Sensor GUI.exe.config
+C:\Users\Sebastian\Documents\GitHub\TIDALsign\Sensor GUI - Windows\Sensor GUI\obj\Debug\Sensor GUI.exe
+C:\Users\Sebastian\Documents\GitHub\TIDALsign\Sensor GUI - Windows\Sensor GUI\obj\Debug\Sensor GUI.pdb
+C:\Users\Sebastian\Documents\GitHub\TIDALsign\Sensor GUI - Windows\Sensor GUI\bin\Debug\Sensor GUI.exe
+C:\Users\Sebastian\Documents\GitHub\TIDALsign\Sensor GUI - Windows\Sensor GUI\bin\Debug\Sensor GUI.pdb
+C:\Users\Sebastian\Documents\GitHub\TIDALsign\Sensor GUI - Windows\Sensor GUI\obj\Debug\Sensor GUI.csprojResolveAssemblyReference.cache
+C:\Users\Sebastian\Documents\GitHub\TIDALsign\Sensor GUI - Windows\Sensor GUI\obj\Debug\Sensor_GUI.Form1.resources
+C:\Users\Sebastian\Documents\GitHub\TIDALsign\Sensor GUI - Windows\Sensor GUI\obj\Debug\Sensor_GUI.Properties.Resources.resources
+C:\Users\Sebastian\Documents\GitHub\TIDALsign\Sensor GUI - Windows\Sensor GUI\obj\Debug\Sensor GUI.csproj.GenerateResource.Cache

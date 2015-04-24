@@ -55,11 +55,11 @@ void loop() {
   while (!commActive)
   {
     // When the host sent a handshake, read bytes in
-    if (Serial.available() == 3)
+    if (Serial.available() >= 3)
     {
-      handshake1 = Serial.read(); delay(5);
-      handshake2 = Serial.read(); delay(5);
-      handshake3 = Serial.read(); delay(5);
+      handshake1 = Serial.read();
+      handshake2 = Serial.read();
+      handshake3 = Serial.read();
       
       // Verify bytes are "HI!", if they are, establish connection
       if ((handshake1 == 'H') && (handshake2 == 'I') && (handshake3 == '!'))
@@ -67,35 +67,42 @@ void loop() {
         Serial.print("HELLO FROM ARDUINO");
         commActive = true;
       }
+      else
+      {
+        serialFlush();
+      }
     }
-    // Flush any useless serial data
-    //serialFlush();
   }
   
   // Wait for commands
   if (Serial.available() == 3)
   {
-    commBuffer1 = Serial.read(); delay(1);
-    commBuffer2 = Serial.read(); delay(1);
-    commBuffer3 = Serial.read(); delay(1);
+    commBuffer1 = Serial.read();
+    commBuffer2 = Serial.read();
+    commBuffer3 = Serial.read();
     
     // Check what command was received
-    // NOT WORKING, WILL HAVE TO WAIT
-    /*switch (commBuffer1) {
+    switch (commBuffer1) {
       case 'R':
         switch (commBuffer2) {
           case 'A':
             switch (commBuffer3) {
-              case '0':
-                Serial.print(analogRead(A0));
+              case 'A':
+                Serial.println(analogRead(0), DEC);
+                Serial.println(analogRead(1), DEC);
+                Serial.println(analogRead(2), DEC);
+                Serial.println(analogRead(3), DEC);
+                Serial.println(analogRead(4), DEC);
+                break;
+              default:
+                Serial.println(analogRead((int)(commBuffer3 - '0')), DEC);
                 break;
             }
         }
     }
-    */
-    if ((commBuffer1 == 'R') && (commBuffer2 == 'A') && (commBuffer3 == '0'))
-    {
-      Serial.print(analogRead(A0), DEC);
-    }
+    // Clear buffers
+    commBuffer1 = 0;
+    commBuffer2 = 0;
+    commBuffer3 = 0;
   }
 }

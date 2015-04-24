@@ -1,0 +1,40 @@
+import processing.serial.*;
+import controlP5.*;
+
+Serial arduino;
+ControlP5 controlp5;
+
+void setup()
+{
+  // Setup window size and title
+  size(640, 480);
+  frame.setTitle("Sensor GUI");
+  background(0);
+  
+  // Open Serial to arduino
+  arduino = new Serial(this, Serial.list()[0], 19200);
+  delay(3000);
+  attemptHandshake();
+}
+
+//=====================
+//  HELPER FUNCTIONS
+//=====================
+void attemptHandshake()
+{
+  arduino.write('H');
+  arduino.write('I');
+  arduino.write('!');
+  delay(50);
+  
+  if ("HELLO FROM ARDUINO".equals(arduino.readString()))
+  {
+    println("ERROR: No Arduino detected.");
+    exit();
+  }
+}
+
+void draw()
+{
+
+}

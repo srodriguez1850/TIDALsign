@@ -72,6 +72,15 @@ namespace Sensor_GUI
                 buffer[1] = Convert.ToByte('I');
                 buffer[2] = Convert.ToByte('!');
 
+                /*
+                byte[] b1 = new byte[1];
+                byte[] b2 = new byte[1];
+                byte[] b3 = new byte[1];
+                b1[0] = Convert.ToByte('H');
+                b2[0] = Convert.ToByte('I');
+                b3[0] = Convert.ToByte('!');
+                */
+
                 // Test port, open and send handshake
                 currentPort.Open();
                 currentPort.Write(buffer, 0, 3);
