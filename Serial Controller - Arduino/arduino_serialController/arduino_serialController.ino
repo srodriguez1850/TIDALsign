@@ -1,13 +1,27 @@
 /*
 
-SENSOR GUI
+Arduino Bend Sensor
+Northwestern University
 EECS 395: Tangible Interaction Design and Learning
 
 */
 
-/*
-*  HELPER FUNCTIONS
-*/
+// =====================
+//  GLOBAL DECLARATIONS
+// =====================
+// Status LED declaration
+#define LED 13
+// Calibration sample amount
+#define SAMPLE_AMOUNT 100
+// Handshake bytes declarations
+bool commActive = false;
+byte handshake1;
+byte handshake2;
+byte handshake3;
+
+// ==================
+//  HELPER FUNCTIONS
+// ==================
 // Clears the serial buffer for new data
 void serialFlush()
 {
@@ -16,9 +30,6 @@ void serialFlush()
     char a = Serial.read();
   }
 }
-
-// Status LED declaration
-int LED = 13;
 
 void setup() {
   // LED high for initialization
@@ -32,25 +43,17 @@ void setup() {
   
   // Initialize pins to read
   pinMode(A0, INPUT);
+  pinMode(A1, INPUT);
+  pinMode(A2, INPUT);
+  pinMode(A3, INPUT);
+  pinMode(A4, INPUT);
   
   // Flush serial to make sure it's empty
   serialFlush();
   
   // LED low for initialization complete
   digitalWrite(LED, LOW);
-}
-
-// Handshake bytes declarations
-bool commActive = false;
-byte handshake1;
-byte handshake2;
-byte handshake3;
-
-byte commBuffer1;
-byte commBuffer2;
-byte commBuffer3;
-
-void loop() {
+  
   // Ensure a communication with the host before initializing the sensor
   while (!commActive)
   {
@@ -73,7 +76,13 @@ void loop() {
       }
     }
   }
-  
+}
+
+byte commBuffer1;
+byte commBuffer2;
+byte commBuffer3;
+
+void loop() {  
   // Wait for commands
   if (Serial.available() == 3)
   {
@@ -83,6 +92,48 @@ void loop() {
     
     // Check what command was received
     switch (commBuffer1) {
+      case 'C':
+        if (commBuffer2 == 'I' && commBuffer3 == 'N')
+        {
+          // calibrate minimum (stretched fingers)
+          // RUN A NESTED FOR LOOP FOR EVERY FINGER
+          // CALIBRATE 100 SAMPLES BY AVERAGING
+          digitalWrite(LED, HIGH);
+          
+          for (int i = 0; i < 5; i++)
+          {
+            unsigned long avg = 0;
+            for (int j = 0; j < SAMPLE_AMOUNT; j++)
+            {
+              avg += analogRead(i);
+            }
+            avg = avg / SAMPLE_AMOUNT;
+            Serial.println(avg, DEC);
+          }
+          
+          digitalWrite(LED, LOW);
+        }
+        else if (commBuffer2 == 'A' && commBuffer3 == 'X')
+        {
+          // calibrate maximum (balled fingers)
+          // RUN A NESTED FOR LOOP FOR EVERY FINGER
+          // CALIBRATE 100 SAMPLES BY AVERAGING
+          digitalWrite(LED, HIGH);
+          
+          for (int i = 0; i < 5; i++)
+          {
+            unsigned long avg = 0;
+            for (int j = 0; j < SAMPLE_AMOUNT; j++)
+            {
+              avg += analogRead(i);
+            }
+            avg = avg / SAMPLE_AMOUNT;
+            Serial.println(avg, DEC);
+          }
+          
+          digitalWrite(LED, LOW);
+        }
+        else break;
       case 'R':
         switch (commBuffer2) {
           case 'A':
