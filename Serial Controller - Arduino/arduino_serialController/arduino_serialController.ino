@@ -37,6 +37,49 @@ void serialFlush()
   }
 }
 
+void forceConnection()
+{
+  // Ensure a communication with the host before initializing the sensor
+  while (!commActive)
+  {
+    // When the host sent a handshake, read bytes in
+    if (Serial.available() >= 3)
+    {
+      handshake1 = Serial.read();
+      handshake2 = Serial.read();
+      handshake3 = Serial.read();
+      
+      // Verify bytes are "HI!", if they are, establish connection
+      if ((handshake1 == 'H') && (handshake2 == 'I') && (handshake3 == '!'))
+      {
+        Serial.println("HELLO FROM ARDUINO");
+        commActive = true;
+      }
+      else
+      {
+        serialFlush();
+      }
+    }
+  }
+}
+
+void calibrateSensor()
+{
+  for (int i = 0; i < 5; i++)
+  {
+    unsigned long avg = 0;
+    for (int j = 0; j < SAMPLE_AMOUNT; j++)
+    {
+      avg += analogRead(i);
+    }
+    avg = avg / SAMPLE_AMOUNT;
+    Serial.println(avg, DEC);
+  }
+}
+
+// ================
+//  SETUP FUNCTION
+// ================
 void setup() {
   // LED high for initialization
   digitalWrite(LED, HIGH);
@@ -57,28 +100,8 @@ void setup() {
   // Flush serial to make sure it's empty
   serialFlush();
   
-  // Ensure a communication with the host before initializing the sensor
-  while (!commActive)
-  {
-    // When the host sent a handshake, read bytes in
-    if (Serial.available() >= 3)
-    {
-      handshake1 = Serial.read();
-      handshake2 = Serial.read();
-      handshake3 = Serial.read();
-      
-      // Verify bytes are "HI!", if they are, establish connection
-      if ((handshake1 == 'H') && (handshake2 == 'I') && (handshake3 == '!'))
-      {
-        Serial.print("HELLO FROM ARDUINO");
-        commActive = true;
-      }
-      else
-      {
-        serialFlush();
-      }
-    }
-  }
+  // Force connection
+  forceConnection();
   
   // LED low for initialization complete, won't got low if not connected
   digitalWrite(LED, LOW);
@@ -88,7 +111,11 @@ byte commBuffer1;
 byte commBuffer2;
 byte commBuffer3;
 
-void loop() {  
+// ===============
+//  MAIN FUNCTION
+// ===============
+void loop()
+{  
   // Wait for commands
   if (Serial.available() == 3)
   {
@@ -99,45 +126,15 @@ void loop() {
     // Check what command was received
     switch (commBuffer1) {
       case 'C':
-        if (commBuffer2 == 'I' && commBuffer3 == 'N')
+        if (commBuffer2 == 'A' && commBuffer3 == 'L')
         {
-          // calibrate minimum (stretched fingers)
+          // calibrate hand (Processing will determine position)
           // RUN A NESTED FOR LOOP FOR EVERY FINGER
           // CALIBRATE 100 SAMPLES BY AVERAGING
           digitalWrite(LED, HIGH);
-          
-          for (int i = 0; i < 5; i++)
-          {
-            unsigned long avg = 0;
-            for (int j = 0; j < SAMPLE_AMOUNT; j++)
-            {
-              avg += analogRead(i);
-            }
-            avg = avg / SAMPLE_AMOUNT;
-            Serial.println(avg, DEC);
-          }
-          
+          calibrateSensor();
           digitalWrite(LED, LOW);
-        }
-        else if (commBuffer2 == 'A' && commBuffer3 == 'X')
-        {
-          // calibrate maximum (balled fingers)
-          // RUN A NESTED FOR LOOP FOR EVERY FINGER
-          // CALIBRATE 100 SAMPLES BY AVERAGING
-          digitalWrite(LED, HIGH);
-          
-          for (int i = 0; i < 5; i++)
-          {
-            unsigned long avg = 0;
-            for (int j = 0; j < SAMPLE_AMOUNT; j++)
-            {
-              avg += analogRead(i);
-            }
-            avg = avg / SAMPLE_AMOUNT;
-            Serial.println(avg, DEC);
-          }
-          
-          digitalWrite(LED, LOW);
+          break;
         }
         else break;
       case 'R':
@@ -155,6 +152,18 @@ void loop() {
                 Serial.println(analogRead((int)(commBuffer3 - '0')), DEC);
                 break;
             }
+        }
+      case 'Q':
+        if (commBuffer2 == 'A' && commBuffer3 == 'P')
+        {
+          while (true)
+          {
+            // Quit command, freeze until hard reset
+            digitalWrite(LED, HIGH);
+            delay(250);
+            digitalWrite(LED, LOW);
+            delay(250);
+          }
         }
     }
     // Clear buffers
