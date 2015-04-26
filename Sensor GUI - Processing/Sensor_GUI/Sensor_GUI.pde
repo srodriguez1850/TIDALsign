@@ -20,6 +20,9 @@ void setup()
   delay(3000);
   attemptHandshake();
   
+  // Initialize Sensor class
+  sensor = new Sensor();
+  
   // == Interface initializers ==
   controlp5 = new ControlP5(this);
   // Disable broadcasting to listeners
@@ -72,36 +75,52 @@ void setup()
 // ====================
 //  CLASS DECLARATIONS
 // ====================
-class Sensor
+public class Sensor
 {
-  int calMax[] = new int[5];
-  int calMin[] = new int[5];
-  int valBend[] = new int[5];
+  int calMin[];
+  int calMax[];
+  int valBend[];
+  
+  // Constructor
+  Sensor()
+  {
+    calMin = new int[5];
+    calMax = new int[5];
+    valBend = new int[5];
+  }
   
   // Setters
-  void setCalibrationMax(int max, int finger)
-  {
-    calMax[finger] = max;
-  }
-  void setCalibrationMin(int min, int finger)
+  public void setCalibrationMin(int min, int finger)
   {
     calMin[finger] = min;
   }
-  void setBendValue(int val, int finger)
+  public void setCalibrationMax(int max, int finger)
+  {
+    calMax[finger] = max;
+  }
+  public void setIndividualBendValue(int val, int finger)
   {
     valBend[finger] = val;
   }
+  public void setBendValue()
+  {
+    valBend[0] = Integer.parseInt(arduino.readStringUntil(10).trim());
+    valBend[1] = Integer.parseInt(arduino.readStringUntil(10).trim());
+    valBend[2] = Integer.parseInt(arduino.readStringUntil(10).trim());
+    valBend[3] = Integer.parseInt(arduino.readStringUntil(10).trim());
+    valBend[4] = Integer.parseInt(arduino.readStringUntil(10).trim());
+  }
   
   // Getters
-  int getCalibrationMax(int finger)
-  {
-    return calMax[finger];
-  }
-  int getCalibrationMin(int finger)
+  public int getCalibrationMin(int finger)
   {
     return calMin[finger];
   }
-  int getBendValue(int finger)
+  public int getCalibrationMax(int finger)
+  {
+    return calMax[finger];
+  }
+  public int getIndividualBendValue(int finger)
   {
     return valBend[finger];
   }
@@ -125,29 +144,63 @@ void attemptHandshake()
     println("ERROR: No Arduino detected.");
     exit();
   }
-  
-  return;
 }
 
-void sendCommand(String command)
+void sendCommand(byte com0, byte com1, byte com2)
 {
-  if (command.length() != 3)
-  {
-    // Command is not 3 bytes
-    println("ERROR: Command is not 3 bytes");
-    return;
-  }
+  command[0] = com0;
+  command[1] = com1;
+  command[2] = com2;
+  arduino.write(command);
+}
+
+void calibrateSensor()
+{
+  arduino.clear();
   
-  arduino.write(command.getBytes());
-  return;
+  sendCommand(CommC, CommI, CommN);
+  delay(500);
+  sensor.setCalibrationMin(Integer.parseInt(arduino.readStringUntil(10).trim()), 0);
+  sensor.setCalibrationMin(Integer.parseInt(arduino.readStringUntil(10).trim()), 1);
+  sensor.setCalibrationMin(Integer.parseInt(arduino.readStringUntil(10).trim()), 2);
+  sensor.setCalibrationMin(Integer.parseInt(arduino.readStringUntil(10).trim()), 3);
+  sensor.setCalibrationMin(Integer.parseInt(arduino.readStringUntil(10).trim()), 4);
+  println("Minimum calibration assigned");
+  
+  sendCommand(CommC, CommA, CommX);
+  delay(500);
+  sensor.setCalibrationMax(Integer.parseInt(arduino.readStringUntil(10).trim()), 0);
+  sensor.setCalibrationMax(Integer.parseInt(arduino.readStringUntil(10).trim()), 1);
+  sensor.setCalibrationMax(Integer.parseInt(arduino.readStringUntil(10).trim()), 2);
+  sensor.setCalibrationMax(Integer.parseInt(arduino.readStringUntil(10).trim()), 3);
+  sensor.setCalibrationMax(Integer.parseInt(arduino.readStringUntil(10).trim()), 4);
+  println("Maximum calibration assigned");
+  
+  isCalibrated = true;
+}
+
+void updateGUISliders()
+{
+  controlp5.getController("Thumb").setValue(Integer.parseInt(arduino.readStringUntil(10).trim()));
+  controlp5.getController("Index").setValue(Integer.parseInt(arduino.readStringUntil(10).trim()));
+  controlp5.getController("Middle").setValue(Integer.parseInt(arduino.readStringUntil(10).trim()));
+  controlp5.getController("Ring").setValue(Integer.parseInt(arduino.readStringUntil(10).trim()));
+  controlp5.getController("Pinky").setValue(Integer.parseInt(arduino.readStringUntil(10).trim()));
 }
 
 // ===================
 //  GLOBAL VARIABLES
 // ===================
-
 boolean isCalibrated = false;
 byte command[] = new byte[3];
+
+final byte Comm0 = 0x30;
+final byte CommA = 0x41;
+final byte CommC = 0x43;
+final byte CommI = 0x49;
+final byte CommN = 0x4E;
+final byte CommR = 0x52;
+final byte CommX = 0x58;
 
 // ===============
 //  MAIN FUNCTION
@@ -155,18 +208,14 @@ byte command[] = new byte[3];
 
 void draw()
 {
-  while (!isCalibrated)
+  if (!isCalibrated)
   {
-    sendCommand("CIN");
-    delay(1000);
-    sendCommand("CAX");
-    delay(1000);
-    isCalibrated = true;
+    calibrateSensor();
   }
-  sendCommand("RA0");
+  
+  sendCommand(CommR, CommA, CommA);
   delay(25);
-  // May have to exception handle vvvvv
-  controlp5.getController("Thumb").setValue(Integer.parseInt(arduino.readStringUntil(10).trim()));
+  updateGUISliders();
 }
 
 // ==========================

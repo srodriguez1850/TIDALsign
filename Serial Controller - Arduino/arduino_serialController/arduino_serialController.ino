@@ -4,6 +4,12 @@ Arduino Bend Sensor
 Northwestern University
 EECS 395: Tangible Interaction Design and Learning
 
+Finger Assignments (Right Hand)
+0 - Thumb
+1 - Index
+2 - Middle
+3 - Ring
+4 - Pinky
 */
 
 // =====================
@@ -51,9 +57,6 @@ void setup() {
   // Flush serial to make sure it's empty
   serialFlush();
   
-  // LED low for initialization complete
-  digitalWrite(LED, LOW);
-  
   // Ensure a communication with the host before initializing the sensor
   while (!commActive)
   {
@@ -76,6 +79,9 @@ void setup() {
       }
     }
   }
+  
+  // LED low for initialization complete, won't got low if not connected
+  digitalWrite(LED, LOW);
 }
 
 byte commBuffer1;
