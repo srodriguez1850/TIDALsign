@@ -36,6 +36,8 @@ byte handshake3;
 byte commBuffer1;
 byte commBuffer2;
 byte commBuffer3;
+// Vibration flag
+bool vibrActive = false;
 
 // ==================
 //  HELPER FUNCTIONS
@@ -170,6 +172,16 @@ void loop()
         }
       case 'V':
         // vibration motor cases
+        switch (commBuffer2) {
+          case 'D':
+            switch (commBuffer3) {
+              // digital vibration
+            }
+          case 'A':
+            switch (commBuffer3) {
+              // analog vibration
+            }
+        }
       case 'Q':
         if (commBuffer2 == 'A' && commBuffer3 == 'P')
         {

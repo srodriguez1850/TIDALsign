@@ -21,6 +21,7 @@ Textlabel textlabel1;
 // ==================
 public static final int MAX_DATABASE_SIZE = 50;
 public static final float VALIDATION_THRESHOLD = 0.33;
+public static final int VALIDATION_GPERIOD = 3000;
 
 // ================
 //  SETUP FUNCTION
@@ -131,6 +132,7 @@ public class Sensor
   int calMin[];
   int calMax[];
   int valBend[];
+  public int valMapped[];
   
   // Constructor
   Sensor()
@@ -138,6 +140,7 @@ public class Sensor
     calMin = new int[5];
     calMax = new int[5];
     valBend = new int[5];
+    valMapped = new int[5];
   }
   
   // Inherited
@@ -188,6 +191,14 @@ public class Sensor
       return;
     }
   }
+  public void setMappedValue()
+  {
+    valMapped[0] = (int)map(getIndividualBendValue(0), getCalibrationMin(0), getCalibrationMax(0), 0, 100);
+    valMapped[1] = (int)map(getIndividualBendValue(1), getCalibrationMin(1), getCalibrationMax(1), 0, 100);
+    valMapped[2] = (int)map(getIndividualBendValue(2), getCalibrationMin(2), getCalibrationMax(2), 0, 100);
+    valMapped[3] = (int)map(getIndividualBendValue(3), getCalibrationMin(3), getCalibrationMax(3), 0, 100);
+    valMapped[4] = (int)map(getIndividualBendValue(4), getCalibrationMin(4), getCalibrationMax(4), 0, 100);
+  }
   
   // Getters
   public int getCalibrationMin(int finger)
@@ -206,9 +217,9 @@ public class Sensor
 
 class SignDatabase
 {
-  String signName[];
-  String signData[];
-  int index;
+  public String signName[];
+  public String signData[];
+  public int index;
   
   // Constructor
   SignDatabase()
@@ -300,7 +311,6 @@ void calibrateSensor()
   sensor.setCalibrationMin(Integer.parseInt(arduino.readStringUntil(10).trim()), 2);
   sensor.setCalibrationMin(Integer.parseInt(arduino.readStringUntil(10).trim()), 3);
   sensor.setCalibrationMin(Integer.parseInt(arduino.readStringUntil(10).trim()), 4);
-  println("Minimum calibration assigned");
   
   sendCommand("CAL");
   delay(500);
@@ -309,7 +319,6 @@ void calibrateSensor()
   sensor.setCalibrationMax(Integer.parseInt(arduino.readStringUntil(10).trim()), 2);
   sensor.setCalibrationMax(Integer.parseInt(arduino.readStringUntil(10).trim()), 3);
   sensor.setCalibrationMax(Integer.parseInt(arduino.readStringUntil(10).trim()), 4);
-  println("Maximum calibration assigned");
 }
 
 void updateGUISliders()
@@ -321,28 +330,29 @@ void updateGUISliders()
   controlp5.getController("Pinky").setValue(sensor.getIndividualBendValue(4));
 }
 
-void sensorMapping()
+void enableButton(String s)  // only aesthetic
 {
-  thumbMap = (int)map(sensor.getIndividualBendValue(0), sensor.getCalibrationMin(0), sensor.getCalibrationMax(0), 0, 100);
-  indexMap = (int)map(sensor.getIndividualBendValue(1), sensor.getCalibrationMin(1), sensor.getCalibrationMax(1), 0, 100);
-  middleMap = (int)map(sensor.getIndividualBendValue(2), sensor.getCalibrationMin(2), sensor.getCalibrationMax(2), 0, 100);
-  ringMap = (int)map(sensor.getIndividualBendValue(3), sensor.getCalibrationMin(3), sensor.getCalibrationMax(3), 0, 100);
-  pinkyMap = (int)map(sensor.getIndividualBendValue(4), sensor.getCalibrationMin(4), sensor.getCalibrationMax(4), 0, 100);
+  controlp5.controller(s).setColorBackground(color(2, 52, 77));
+  controlp5.controller(s).setColorForeground(color(1, 108, 158));
+  controlp5.controller(s).setColorActive(color(0, 180, 234));
+}
+
+void disableButton(String s)  // only aesthetic
+{
+  controlp5.controller(s).setColorBackground(color(102, 0, 0));
+  controlp5.controller(s).setColorForeground(color(170, 0, 0));
+  controlp5.controller(s).setColorActive(color(255, 0, 0));
 }
 
 // ===================
 //  GLOBAL VARIABLES
 // ===================
 byte command[] = new byte[3];
-int initialGrace;    // will overflow after 18 hours
+
+int initialGrace;    // will overflow after 18 hours (shouldn't be a problem)
 boolean activeGrace = false;
 
-// WE USE THESE TO CHECK THE DATABASE
-int thumbMap;
-int indexMap;
-int middleMap;
-int ringMap;
-int pinkyMap;
+int currentDBIndex = 0;
 
 // ===============
 //  MAIN FUNCTION
@@ -353,17 +363,17 @@ void draw()
   sendCommand("RAA");
   delay(25);
   sensor.setBendValue();
-  sensorMapping();
+  sensor.setMappedValue();
   updateGUISliders();
   
   // Check user input routine
   if (activeGrace)
   {
-    if (millis() - initialGrace > 3000)
+    if (millis() - initialGrace > VALIDATION_GPERIOD)
     {
       // check user's fingers against the database here, give feedback as needed
       // if user is correct, set activegrace to false to exit
-      println("CHECK USER INPUT");
+      print("Checking user input for "); println(db.signName[currentDBIndex]);
       /*
       check every finger against thresholds of current letter of the database
         if every finger is correct, exit
@@ -371,8 +381,57 @@ void draw()
         buzz fingers, and retake the initial grace
         continue this until all fingers are correct
         
-        vibration motor command: V
+        vibration motor command: VD
       */
+      
+      boolean correctFingers[] = new boolean[5];
+      
+      // Grabbing data from db places a null object in index 0
+      String[] bufferVal = db.signData[currentDBIndex].split("");
+      String[] values = new String[5];
+      for (int i = 0; i < 5; i++)
+      {
+        values[i] = bufferVal[i + 1];
+      }
+      
+      for (int i = 0; i < 5; i++) //<>//
+      {
+        if (values[i].equals("L"))
+        {
+          if (sensor.valMapped[i] <= 33)
+          {
+            print("Finger "); print(i); println(" is correct in L");
+          }
+          else
+          {
+            print("Finger "); print(i); println(" is incorrect in L");
+          }
+        }
+        else if (values[i].equals("M"))
+        {
+          if (33 < sensor.valMapped[i] && sensor.valMapped[i] <= 67)
+          {
+            print("Finger "); print(i); println(" is correct in M");
+          }
+          else
+          {
+            print("Finger "); print(i); println(" is incorrect in M");
+          }
+        }
+        else if (values[i].equals("H"))
+        {
+          if (67 < sensor.valMapped[i])
+          {
+            print("Finger "); print(i); println(" is correct in H");
+          }
+          else
+          {
+            print("Finger "); print(i); println(" is incorrect in H");
+          }
+        }
+        else break;
+      }
+      println("");
       initialGrace = millis();
     }
   }
@@ -388,14 +447,30 @@ public void Calibrate()
 
 public void Next()
 {
-  initialGrace = millis();
-  activeGrace = true;
+  if (currentDBIndex < 26)
+  {
+    currentDBIndex++;
+    initialGrace = millis();
+    activeGrace = true;
+    if (currentDBIndex == 25)
+    {
+      disableButton("Next");
+    }
+  }
 }
 
 public void Previous()
 {
-  initialGrace = millis();
-  activeGrace = true;
+  if (currentDBIndex > 0)
+  {
+    currentDBIndex--;
+    initialGrace = millis();
+    activeGrace = true;
+    if (currentDBIndex == 0)
+    {
+      disableButton("Previous");
+    }
+  }
 }
 
 public void Quit()
