@@ -4,12 +4,20 @@ Arduino Bend Sensor
 Northwestern University
 EECS 395: Tangible Interaction Design and Learning
 
-Finger Assignments (Right Hand)
-0 - Thumb
-1 - Index
-2 - Middle
-3 - Ring
-4 - Pinky
+Bend Sensor Pin Assignments
+A0 - Thumb
+A1 - Index
+A2 - Middle
+A3 - Ring
+A4 - Pinky
+
+Vibration Motor Pin Assignments
+3 - Thumb
+5 - Index
+6 - Middle
+9 - Ring
+10 - Pinky
+
 */
 
 // =====================
@@ -19,11 +27,15 @@ Finger Assignments (Right Hand)
 #define LED 13
 // Calibration sample amount
 #define SAMPLE_AMOUNT 100
-// Handshake bytes declarations
+// Handshake byte declarations
 bool commActive = false;
 byte handshake1;
 byte handshake2;
 byte handshake3;
+// Command byte declarations
+byte commBuffer1;
+byte commBuffer2;
+byte commBuffer3;
 
 // ==================
 //  HELPER FUNCTIONS
@@ -87,8 +99,8 @@ void setup() {
   // Set LED
   pinMode(LED, OUTPUT);
   
-  // Open serial port at baud 19200
-  Serial.begin(19200);
+  // Open serial port at baud 38400
+  Serial.begin(38400);
   
   // Initialize pins to read
   pinMode(A0, INPUT);
@@ -96,6 +108,13 @@ void setup() {
   pinMode(A2, INPUT);
   pinMode(A3, INPUT);
   pinMode(A4, INPUT);
+  
+  // Initialize pins to vibrate (PWM)
+  pinMode(3, OUTPUT);
+  pinMode(5, OUTPUT);
+  pinMode(6, OUTPUT);
+  pinMode(9, OUTPUT);
+  pinMode(10, OUTPUT);
   
   // Flush serial to make sure it's empty
   serialFlush();
@@ -106,10 +125,6 @@ void setup() {
   // LED low for initialization complete, won't got low if not connected
   digitalWrite(LED, LOW);
 }
-
-byte commBuffer1;
-byte commBuffer2;
-byte commBuffer3;
 
 // ===============
 //  MAIN FUNCTION
@@ -153,6 +168,8 @@ void loop()
                 break;
             }
         }
+      case 'V':
+        // vibration motor cases
       case 'Q':
         if (commBuffer2 == 'A' && commBuffer3 == 'P')
         {

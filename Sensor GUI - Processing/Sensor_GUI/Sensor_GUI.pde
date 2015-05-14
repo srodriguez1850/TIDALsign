@@ -1,11 +1,26 @@
+/*
+
+Sensor GUI
+Northwestern University
+EECS 395: Tangible Interaction Design and Learning
+
+*/
+
 import processing.serial.*;
 import controlP5.*;
 
 Serial arduino;
 Sensor sensor;
+SignDatabase db;
 
 ControlP5 controlp5;
 Textlabel textlabel1;
+
+// ==================
+//  GLOBAL CONSTANTS
+// ==================
+public static final int MAX_DATABASE_SIZE = 50;
+public static final float VALIDATION_THRESHOLD = 0.33;
 
 // ================
 //  SETUP FUNCTION
@@ -21,7 +36,7 @@ void setup()
   // Open Serial to arduino
   try
   {
-    arduino = new Serial(this, Serial.list()[0], 19200);
+    arduino = new Serial(this, Serial.list()[0], 38400);
     delay(3000);
     attemptHandshake();
   }
@@ -30,8 +45,13 @@ void setup()
     exit();
   }
   
-  // Initialize Sensor class
+  // Initialize sensor
   sensor = new Sensor();
+  calibrateSensor();
+  
+  // Initialize database
+  db = new SignDatabase();
+  db.initializeDatabase("signdb.db");  
   
   // == Interface initializers ==
   controlp5 = new ControlP5(this);
@@ -78,6 +98,27 @@ void setup()
            .setSize(70, 20)
            .setId(1)
            .getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER);
+  // Next letter button
+  controlp5.addButton("Next")
+           .setValue(10)
+           .setPosition(320, 75)
+           .setSize(70, 20)
+           .setId(2)
+           .getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER);
+  // Previous letter button
+  controlp5.addButton("Previous")
+           .setValue(10)
+           .setPosition(320, 105)
+           .setSize(70, 20)
+           .setId(3)
+           .getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER);
+  // Quit button
+  controlp5.addButton("Quit")
+           .setValue(10)
+           .setPosition(320, 175)
+           .setSize(70, 20)
+           .setId(4)
+           .getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER);
   // Re-enable broadcasting to listeners
   controlp5.setBroadcast(true);
 }
@@ -99,6 +140,25 @@ public class Sensor
     valBend = new int[5];
   }
   
+  // Inherited
+  public String toString()
+  {
+    String s = "";
+    
+    s += "Calibration minimum:\n";
+    for (int i = 0; i < 5; i++)
+    {
+      s += i + " " + calMin[i] + "\n";
+    }
+    s += "Calibration maximum:\n";
+    for (int i = 0; i < 5; i++)
+    {
+      s += i + " " + calMax[i] + "\n";
+    }
+    
+    return s;
+  }
+  
   // Setters
   public void setCalibrationMin(int min, int finger)
   {
@@ -114,11 +174,19 @@ public class Sensor
   }
   public void setBendValue()
   {
-    valBend[0] = Integer.parseInt(arduino.readStringUntil(10).trim());
-    valBend[1] = Integer.parseInt(arduino.readStringUntil(10).trim());
-    valBend[2] = Integer.parseInt(arduino.readStringUntil(10).trim());
-    valBend[3] = Integer.parseInt(arduino.readStringUntil(10).trim());
-    valBend[4] = Integer.parseInt(arduino.readStringUntil(10).trim());
+    try
+    {
+      valBend[0] = Integer.parseInt(arduino.readStringUntil(10).trim());
+      valBend[1] = Integer.parseInt(arduino.readStringUntil(10).trim());
+      valBend[2] = Integer.parseInt(arduino.readStringUntil(10).trim());
+      valBend[3] = Integer.parseInt(arduino.readStringUntil(10).trim());
+      valBend[4] = Integer.parseInt(arduino.readStringUntil(10).trim());
+    }
+    catch (NullPointerException e)
+    {
+      println("Exception: serial buffer empty");
+      return;
+    }
   }
   
   // Getters
@@ -133,6 +201,69 @@ public class Sensor
   public int getIndividualBendValue(int finger)
   {
     return valBend[finger];
+  }
+}
+
+class SignDatabase
+{
+  String signName[];
+  String signData[];
+  int index;
+  
+  // Constructor
+  SignDatabase()
+  {
+    signName = new String[MAX_DATABASE_SIZE];
+    signData = new String[MAX_DATABASE_SIZE];
+    index = 0;
+  }
+  
+  // Inherited
+  public String toString()
+  {
+    String s = "";
+    
+    for (int i = 0; i < index; i++)
+    {
+      s += signName[i] + " " + signData[i] + "\n";
+    }
+    
+    return s;
+  }
+  
+  // Specific
+  void initializeDatabase(String address)
+  {
+    BufferedReader parser;
+    String p_name;
+    String p_data;
+    
+    parser = createReader(address);
+    
+    do
+    {
+      try
+      {
+        p_name = parser.readLine();
+        p_data = parser.readLine();
+      }
+      catch (IOException e)
+      {
+        p_name = null;
+        p_data = null;
+      }
+      if (p_name != null && p_data != null)
+      {
+        db.addEntry(p_name, p_data);
+      }
+    } while (p_name != null && p_data != null);
+  }
+  
+  void addEntry(String name, String data)
+  {
+    signName[index] = name;
+    signData[index] = data;
+    index++;
   }
 }
 
@@ -179,8 +310,6 @@ void calibrateSensor()
   sensor.setCalibrationMax(Integer.parseInt(arduino.readStringUntil(10).trim()), 3);
   sensor.setCalibrationMax(Integer.parseInt(arduino.readStringUntil(10).trim()), 4);
   println("Maximum calibration assigned");
-  
-  isCalibrated = true;
 }
 
 void updateGUISliders()
@@ -192,26 +321,61 @@ void updateGUISliders()
   controlp5.getController("Pinky").setValue(sensor.getIndividualBendValue(4));
 }
 
+void sensorMapping()
+{
+  thumbMap = (int)map(sensor.getIndividualBendValue(0), sensor.getCalibrationMin(0), sensor.getCalibrationMax(0), 0, 100);
+  indexMap = (int)map(sensor.getIndividualBendValue(1), sensor.getCalibrationMin(1), sensor.getCalibrationMax(1), 0, 100);
+  middleMap = (int)map(sensor.getIndividualBendValue(2), sensor.getCalibrationMin(2), sensor.getCalibrationMax(2), 0, 100);
+  ringMap = (int)map(sensor.getIndividualBendValue(3), sensor.getCalibrationMin(3), sensor.getCalibrationMax(3), 0, 100);
+  pinkyMap = (int)map(sensor.getIndividualBendValue(4), sensor.getCalibrationMin(4), sensor.getCalibrationMax(4), 0, 100);
+}
+
 // ===================
 //  GLOBAL VARIABLES
 // ===================
-boolean isCalibrated = false;
 byte command[] = new byte[3];
+int initialGrace;    // will overflow after 18 hours
+boolean activeGrace = false;
+
+// WE USE THESE TO CHECK THE DATABASE
+int thumbMap;
+int indexMap;
+int middleMap;
+int ringMap;
+int pinkyMap;
 
 // ===============
 //  MAIN FUNCTION
 // ===============
 void draw()
 {
-  if (!isCalibrated)
-  {
-    calibrateSensor();
-  }
-  
+  // Update GUI routine
   sendCommand("RAA");
   delay(25);
   sensor.setBendValue();
+  sensorMapping();
   updateGUISliders();
+  
+  // Check user input routine
+  if (activeGrace)
+  {
+    if (millis() - initialGrace > 3000)
+    {
+      // check user's fingers against the database here, give feedback as needed
+      // if user is correct, set activegrace to false to exit
+      println("CHECK USER INPUT");
+      /*
+      check every finger against thresholds of current letter of the database
+        if every finger is correct, exit
+        else take fingers that are wrong, change the slider color, send command to arduino to
+        buzz fingers, and retake the initial grace
+        continue this until all fingers are correct
+        
+        vibration motor command: V
+      */
+      initialGrace = millis();
+    }
+  }
 }
 
 // ==========================
@@ -219,5 +383,23 @@ void draw()
 // ==========================
 public void Calibrate()
 {
-  isCalibrated = false;
+  calibrateSensor();
+}
+
+public void Next()
+{
+  initialGrace = millis();
+  activeGrace = true;
+}
+
+public void Previous()
+{
+  initialGrace = millis();
+  activeGrace = true;
+}
+
+public void Quit()
+{
+  sendCommand("QAP");
+  exit();
 }
