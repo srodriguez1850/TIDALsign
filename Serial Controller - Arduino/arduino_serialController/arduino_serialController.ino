@@ -12,11 +12,11 @@ A3 - Ring
 A4 - Pinky
 
 Vibration Motor Pin Assignments
-3 - Thumb
-5 - Index
-6 - Middle
-9 - Ring
-10 - Pinky
+2 - Thumb
+3 - Index
+4 - Middle
+5 - Ring
+6 - Pinky
 
 */
 
@@ -27,6 +27,8 @@ Vibration Motor Pin Assignments
 #define LED 13
 // Calibration sample amount
 #define SAMPLE_AMOUNT 100
+// Vibration length
+#define VIBRATION_PERIOD 500
 // Handshake byte declarations
 bool commActive = false;
 byte handshake1;
@@ -38,6 +40,8 @@ byte commBuffer2;
 byte commBuffer3;
 // Vibration flag
 bool vibrActive = false;
+// Vibration start time
+unsigned long vibrTime = 0;
 
 // ==================
 //  HELPER FUNCTIONS
@@ -91,15 +95,30 @@ void calibrateSensor()
   }
 }
 
+void checkVibration()
+{
+  if (vibrActive)
+  {
+    if (millis() - vibrTime > VIBRATION_PERIOD)
+    {
+      for (int i = 0; i < 5; i++)
+      {
+        digitalWrite(i + 2, LOW);
+      }
+      vibrActive = false;
+    }
+  }
+}
+
 // ================
 //  SETUP FUNCTION
 // ================
 void setup() {
-  // LED high for initialization
-  digitalWrite(LED, HIGH);
-  
   // Set LED
   pinMode(LED, OUTPUT);
+  
+  // LED high for initialization
+  digitalWrite(LED, HIGH);
   
   // Open serial port at baud 38400
   Serial.begin(38400);
@@ -111,12 +130,18 @@ void setup() {
   pinMode(A3, INPUT);
   pinMode(A4, INPUT);
   
-  // Initialize pins to vibrate (PWM)
+  // Initialize pins to vibrate
+  pinMode(2, OUTPUT);
   pinMode(3, OUTPUT);
+  pinMode(4, OUTPUT);
   pinMode(5, OUTPUT);
   pinMode(6, OUTPUT);
-  pinMode(9, OUTPUT);
-  pinMode(10, OUTPUT);
+  
+  // Initialize vibration pins low
+  for (int i = 0; i < 5; i++)
+  {
+    digitalWrite(i + 2, LOW);
+  }
   
   // Flush serial to make sure it's empty
   serialFlush();
@@ -132,7 +157,9 @@ void setup() {
 //  MAIN FUNCTION
 // ===============
 void loop()
-{  
+{
+  // Check if vibration is running
+  checkVibration();
   // Wait for commands
   if (Serial.available() == 3)
   {
@@ -171,16 +198,41 @@ void loop()
             }
         }
       case 'V':
-        // vibration motor cases
+        if (commBuffer2 == 'T' && commBuffer3 == 'O')
+        {
+          for (int i = 0; i < 5; i++)
+          {
+            digitalWrite(i + 2, LOW);
+          }
+          vibrActive = false;
+          vibrTime = 0;
+          break;
+        }
         switch (commBuffer2) {
           case 'D':
-            switch (commBuffer3) {
-              // digital vibration
+          {
+            // grab char in buffer, turn into binary, and read bits 0 to 4
+            String motors = String(commBuffer3, BIN).substring(1);
+            for (int i = 0; i < 5; i++)
+            {
+              if (motors[i] == '0')
+              {
+                digitalWrite(i + 2, HIGH);
+              }
+              else
+              {
+                digitalWrite(i + 2, LOW);
+              }
             }
+            vibrActive = true;
+            vibrTime = millis();
+            break;
+          }
           case 'A':
-            switch (commBuffer3) {
-              // analog vibration
-            }
+            // analog vibration, use pwm pins but find a way to encode
+            break;
+          default:
+            break;
         }
       case 'Q':
         if (commBuffer2 == 'A' && commBuffer3 == 'P')

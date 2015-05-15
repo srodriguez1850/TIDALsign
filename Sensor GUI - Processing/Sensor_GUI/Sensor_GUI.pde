@@ -15,12 +15,14 @@ SignDatabase db;
 
 ControlP5 controlp5;
 Textlabel textlabel1;
+Textlabel textlabel2;
 
 // ==================
 //  GLOBAL CONSTANTS
 // ==================
 public static final int MAX_DATABASE_SIZE = 50;
-public static final float VALIDATION_THRESHOLD = 0.33;
+public static final float VALIDATION_M_THRESHOLD = 33;
+public static final float VALIDATION_H_THRESHOLD = 67;
 public static final int VALIDATION_GPERIOD = 3000;
 
 // ================
@@ -62,6 +64,9 @@ void setup()
   textlabel1 = controlp5.addTextlabel("Title")
                         .setText("Sensor GUI")
                         .setPosition(10, 10);
+  textlabel2 = controlp5.addTextlabel("CurrentLetter")
+                        .setText("A")
+                        .setPosition(348, 98);
   // Thumb slider
   controlp5.addSlider("Thumb")
            .setRange(0, 1023)
@@ -102,14 +107,14 @@ void setup()
   // Next letter button
   controlp5.addButton("Next")
            .setValue(10)
-           .setPosition(320, 75)
+           .setPosition(320, 115)
            .setSize(70, 20)
            .setId(2)
            .getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER);
   // Previous letter button
   controlp5.addButton("Previous")
            .setValue(10)
-           .setPosition(320, 105)
+           .setPosition(320, 70)
            .setSize(70, 20)
            .setId(3)
            .getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER);
@@ -120,6 +125,7 @@ void setup()
            .setSize(70, 20)
            .setId(4)
            .getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER);
+  disableButton("Previous");
   // Re-enable broadcasting to listeners
   controlp5.setBroadcast(true);
 }
@@ -344,32 +350,9 @@ void disableButton(String s)  // only aesthetic
   controlp5.controller(s).setColorActive(color(255, 0, 0));
 }
 
-// ===================
-//  GLOBAL VARIABLES
-// ===================
-byte command[] = new byte[3];
-
-int initialGrace;    // will overflow after 18 hours (shouldn't be a problem)
-boolean activeGrace = false;
-
-int currentDBIndex = 0;
-
-// ===============
-//  MAIN FUNCTION
-// ===============
-void draw()
+void validationRoutine()
 {
-  // Update GUI routine
-  sendCommand("RAA");
-  delay(25);
-  sensor.setBendValue();
-  sensor.setMappedValue();
-  updateGUISliders();
-  
-  // Check user input routine
-  if (activeGrace)
-  {
-    if (millis() - initialGrace > VALIDATION_GPERIOD)
+  if (millis() - initialGrace > VALIDATION_GPERIOD)
     {
       // check user's fingers against the database here, give feedback as needed
       // if user is correct, set activegrace to false to exit
@@ -386,6 +369,7 @@ void draw()
       
       boolean correctFingers[] = new boolean[5];
       
+      //////////////////////////////////////////////////////////
       // Grabbing data from db places a null object in index 0
       String[] bufferVal = db.signData[currentDBIndex].split("");
       String[] values = new String[5];
@@ -393,47 +377,108 @@ void draw()
       {
         values[i] = bufferVal[i + 1];
       }
+      //////////////////////////////////////////////////////////
       
       for (int i = 0; i < 5; i++) //<>//
       {
         if (values[i].equals("L"))
         {
-          if (sensor.valMapped[i] <= 33)
+          if (sensor.valMapped[i] <= VALIDATION_M_THRESHOLD)
           {
             print("Finger "); print(i); println(" is correct in L");
+            correctFingers[i] = true;
           }
           else
           {
             print("Finger "); print(i); println(" is incorrect in L");
+            correctFingers[i] = false;
           }
         }
         else if (values[i].equals("M"))
         {
-          if (33 < sensor.valMapped[i] && sensor.valMapped[i] <= 67)
+          if (VALIDATION_M_THRESHOLD < sensor.valMapped[i] && sensor.valMapped[i] <= VALIDATION_H_THRESHOLD)
           {
             print("Finger "); print(i); println(" is correct in M");
+            correctFingers[i] = true;
           }
           else
           {
             print("Finger "); print(i); println(" is incorrect in M");
+            correctFingers[i] = false;
           }
         }
         else if (values[i].equals("H"))
         {
-          if (67 < sensor.valMapped[i])
+          if (VALIDATION_M_THRESHOLD < sensor.valMapped[i])
           {
             print("Finger "); print(i); println(" is correct in H");
+            correctFingers[i] = true;
           }
           else
           {
             print("Finger "); print(i); println(" is incorrect in H");
+            correctFingers[i] = false;
           }
         }
         else break;
       }
-      println("");
+      
+      if (trueVerification(correctFingers))
+      {
+        activeGrace = false;
+        sendCommand("VTO");
+        println("All fingers correct");
+      }
+      else
+      {
+        // concatenate fingers to array
+        int n = 0; //<>//
+        for (int i = 0; i < correctFingers.length; ++i) {
+          n = (n << 1) + (correctFingers[i] ? 1 : 0);
+        }
+        n += 32;
+        char c = ((char)n);
+        sendCommand("VD" + c);
+      }
+      
       initialGrace = millis();
     }
+}
+
+boolean trueVerification(boolean[] a)
+{
+    for(boolean b : a) if(!b) return false;
+    return true;
+}
+
+// ===================
+//  GLOBAL VARIABLES
+// ===================
+byte command[] = new byte[3];
+
+int initialGrace;    // will overflow after 18 hours (shouldn't be a problem)
+boolean activeGrace = false;
+
+int currentDBIndex = 0;
+
+// ===============
+//  MAIN FUNCTION
+// ===============
+void draw()
+{
+  background(0);
+  
+  // Update GUI routine
+  sendCommand("RAA");
+  delay(25);
+  sensor.setBendValue();
+  sensor.setMappedValue();
+  updateGUISliders();
+  
+  // Check user input routine
+  if (activeGrace)
+  {
+    validationRoutine();
   }
 }
 
@@ -447,14 +492,20 @@ public void Calibrate()
 
 public void Next()
 {
-  if (currentDBIndex < 26)
+  if (currentDBIndex < 25)
   {
     currentDBIndex++;
     initialGrace = millis();
     activeGrace = true;
+    sendCommand("VTO");
+    textlabel2.setValue(db.signName[currentDBIndex]);
     if (currentDBIndex == 25)
     {
       disableButton("Next");
+    }
+    if (currentDBIndex != 0)
+    {
+      enableButton("Previous");
     }
   }
 }
@@ -466,9 +517,15 @@ public void Previous()
     currentDBIndex--;
     initialGrace = millis();
     activeGrace = true;
+    sendCommand("VTO");
+    textlabel2.setValue(db.signName[currentDBIndex]);
     if (currentDBIndex == 0)
     {
       disableButton("Previous");
+    }
+    if (currentDBIndex != 25)
+    {
+      enableButton("Next");
     }
   }
 }
