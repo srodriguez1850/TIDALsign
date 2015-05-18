@@ -21,8 +21,9 @@ Textlabel textlabel2;
 //  GLOBAL CONSTANTS
 // ==================
 public static final int MAX_DATABASE_SIZE = 50;
-public static final float VALIDATION_M_THRESHOLD = 33;
-public static final float VALIDATION_H_THRESHOLD = 67;
+public static final int CALIBRATION_PERIOD = 3000;
+public static final int VALIDATION_M_THRESHOLD = 33;
+public static final int VALIDATION_H_THRESHOLD = 67;
 public static final int VALIDATION_GPERIOD = 3000;
 
 // ================
@@ -311,15 +312,17 @@ void calibrateSensor()
   arduino.clear();
   
   sendCommand("CAL");
-  delay(500);
+  delay(250);
   sensor.setCalibrationMin(Integer.parseInt(arduino.readStringUntil(10).trim()), 0);
   sensor.setCalibrationMin(Integer.parseInt(arduino.readStringUntil(10).trim()), 1);
   sensor.setCalibrationMin(Integer.parseInt(arduino.readStringUntil(10).trim()), 2);
   sensor.setCalibrationMin(Integer.parseInt(arduino.readStringUntil(10).trim()), 3);
   sensor.setCalibrationMin(Integer.parseInt(arduino.readStringUntil(10).trim()), 4);
   
+  delay(CALIBRATION_PERIOD);
+  
   sendCommand("CAL");
-  delay(500);
+  delay(250);
   sensor.setCalibrationMax(Integer.parseInt(arduino.readStringUntil(10).trim()), 0);
   sensor.setCalibrationMax(Integer.parseInt(arduino.readStringUntil(10).trim()), 1);
   sensor.setCalibrationMax(Integer.parseInt(arduino.readStringUntil(10).trim()), 2);
@@ -470,7 +473,7 @@ void draw()
   
   // Update GUI routine
   sendCommand("RAA");
-  delay(25);
+  delay(50);
   sensor.setBendValue();
   sensor.setMappedValue();
   updateGUISliders();
