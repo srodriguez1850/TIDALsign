@@ -99,7 +99,13 @@ void setup()
            .setPosition(10, 160)
            .setSize(100, 20);
   // Calibrate button
-  controlp5.addButton("Calibrate")
+  controlp5.addButton("MinCalibrate")
+           .setValue(10)
+           .setPosition(240, 5)
+           .setSize(70, 20)
+           .setId(5)
+           .getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER);
+  controlp5.addButton("MaxCalibrate")
            .setValue(10)
            .setPosition(320, 5)
            .setSize(70, 20)
@@ -330,6 +336,32 @@ void calibrateSensor()
   sensor.setCalibrationMax(Integer.parseInt(arduino.readStringUntil(10).trim()), 4);
 }
 
+void calibrateSensorMin()
+{
+  arduino.clear();
+  
+  sendCommand("CAL");
+  delay(250);
+  sensor.setCalibrationMin(Integer.parseInt(arduino.readStringUntil(10).trim()), 0);
+  sensor.setCalibrationMin(Integer.parseInt(arduino.readStringUntil(10).trim()), 1);
+  sensor.setCalibrationMin(Integer.parseInt(arduino.readStringUntil(10).trim()), 2);
+  sensor.setCalibrationMin(Integer.parseInt(arduino.readStringUntil(10).trim()), 3);
+  sensor.setCalibrationMin(Integer.parseInt(arduino.readStringUntil(10).trim()), 4);
+}
+
+void calibrateSensorMax()
+{
+  arduino.clear();
+  
+  sendCommand("CAL");
+  delay(250);
+  sensor.setCalibrationMax(Integer.parseInt(arduino.readStringUntil(10).trim()), 0);
+  sensor.setCalibrationMax(Integer.parseInt(arduino.readStringUntil(10).trim()), 1);
+  sensor.setCalibrationMax(Integer.parseInt(arduino.readStringUntil(10).trim()), 2);
+  sensor.setCalibrationMax(Integer.parseInt(arduino.readStringUntil(10).trim()), 3);
+  sensor.setCalibrationMax(Integer.parseInt(arduino.readStringUntil(10).trim()), 4);
+}
+
 void updateGUISliders()
 {
   controlp5.getController("Thumb").setValue(sensor.getIndividualBendValue(0));
@@ -488,9 +520,14 @@ void draw()
 // ==========================
 //  CONTROLP5 EVENT HANDLING
 // ==========================
-public void Calibrate()
+public void MinCalibrate()
 {
-  calibrateSensor();
+  calibrateSensorMin();
+}
+
+public void MaxCalibrate()
+{
+  calibrateSensorMax();
 }
 
 public void Next()
