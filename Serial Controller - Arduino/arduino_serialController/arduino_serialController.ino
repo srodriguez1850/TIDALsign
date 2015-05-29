@@ -228,6 +228,26 @@ void loop()
             vibrTime = millis();
             break;
           }
+          case 'S':
+          {
+            // case stagerred, quarter of a second per finger
+            String motors = String(commBuffer3, BIN).substring(1);
+            for (int i = 0; i < 5; i++)
+            {
+              if (motors[i] == '0')
+              {
+                digitalWrite(i + 2, HIGH);
+                delay(250);
+                digitalWrite(i + 2, LOW);
+              }
+              else
+              {
+                digitalWrite(i + 2, LOW);
+              }
+            }
+            // send command through buffer to continue operation
+            break;
+          }
           case 'A':
             // analog vibration, use pwm pins but find a way to encode
             break;

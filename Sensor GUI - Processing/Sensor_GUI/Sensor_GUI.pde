@@ -51,7 +51,7 @@ void setup()
   
   // Initialize sensor
   sensor = new Sensor();
-  calibrateSensor();
+  //calibrateSensor();
   
   // Initialize database
   db = new SignDatabase();
@@ -67,37 +67,37 @@ void setup()
                         .setPosition(10, 10);
   textlabel2 = controlp5.addTextlabel("CurrentLetter")
                         .setText("A")
-                        .setPosition(348, 98);
+                        .setPosition(338, 98);
   // Thumb slider
   controlp5.addSlider("Thumb")
-           .setRange(0, 1023)
+           .setRange(0, 100)
            .setValue(0)
-           .setPosition(10, 40)
-           .setSize(100, 20);
+           .setPosition(230, 50)
+           .setSize(20, 100);
   // Index slider
   controlp5.addSlider("Index")
-           .setRange(0, 1023)
+           .setRange(0, 100)
            .setValue(0)
-           .setPosition(10, 70)
-           .setSize(100, 20);
+           .setPosition(180, 50)
+           .setSize(20, 100);
   // Middle slider
   controlp5.addSlider("Middle")
-           .setRange(0, 1023)
+           .setRange(0, 100)
            .setValue(0)
-           .setPosition(10, 100)
-           .setSize(100, 20);
+           .setPosition(130, 50)
+           .setSize(20, 100);
   // Ring slider
   controlp5.addSlider("Ring")
-           .setRange(0, 1023)
+           .setRange(0, 100)
            .setValue(0)
-           .setPosition(10, 130)
-           .setSize(100, 20);
+           .setPosition(80, 50)
+           .setSize(20, 100);
   // Pinky slider
   controlp5.addSlider("Pinky")
-           .setRange(0, 1023)
+           .setRange(0, 100)
            .setValue(0)
-           .setPosition(10, 160)
-           .setSize(100, 20);
+           .setPosition(30, 50)
+           .setSize(20, 100);
   // Calibrate button
   controlp5.addButton("MinCalibrate")
            .setValue(10)
@@ -114,16 +114,23 @@ void setup()
   // Next letter button
   controlp5.addButton("Next")
            .setValue(10)
-           .setPosition(320, 115)
+           .setPosition(310, 115)
            .setSize(70, 20)
            .setId(2)
            .getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER);
   // Previous letter button
   controlp5.addButton("Previous")
            .setValue(10)
-           .setPosition(320, 70)
+           .setPosition(310, 70)
            .setSize(70, 20)
            .setId(3)
+           .getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER);
+  // Stop button
+  controlp5.addButton("StartStop")
+           .setValue(10)
+           .setPosition(240, 175)
+           .setSize(70, 20)
+           .setId(4)
            .getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER);
   // Quit button
   controlp5.addButton("Quit")
@@ -190,27 +197,26 @@ public class Sensor
   }
   public void setBendValue()
   {
-    try
+    for (int i = 0; i < 5; i++)
     {
-      valBend[0] = Integer.parseInt(arduino.readStringUntil(10).trim());
-      valBend[1] = Integer.parseInt(arduino.readStringUntil(10).trim());
-      valBend[2] = Integer.parseInt(arduino.readStringUntil(10).trim());
-      valBend[3] = Integer.parseInt(arduino.readStringUntil(10).trim());
-      valBend[4] = Integer.parseInt(arduino.readStringUntil(10).trim());
-    }
-    catch (NullPointerException e)
-    {
-      println("Exception: serial buffer empty");
-      return;
+      try
+      {
+        valBend[i] = Integer.parseInt(arduino.readStringUntil(10).trim());
+      }
+      catch (NullPointerException e)
+      {
+        delay(25);
+        valBend[i] = Integer.parseInt(arduino.readStringUntil(10).trim());
+      }
     }
   }
   public void setMappedValue()
   {
-    valMapped[0] = (int)map(getIndividualBendValue(0), getCalibrationMin(0), getCalibrationMax(0), 0, 100);
-    valMapped[1] = (int)map(getIndividualBendValue(1), getCalibrationMin(1), getCalibrationMax(1), 0, 100);
-    valMapped[2] = (int)map(getIndividualBendValue(2), getCalibrationMin(2), getCalibrationMax(2), 0, 100);
-    valMapped[3] = (int)map(getIndividualBendValue(3), getCalibrationMin(3), getCalibrationMax(3), 0, 100);
-    valMapped[4] = (int)map(getIndividualBendValue(4), getCalibrationMin(4), getCalibrationMax(4), 0, 100);
+    valMapped[0] = (int)map(getIndividualBendValue(0), getCalibrationMin(0), getCalibrationMax(0), 100, 0);
+    valMapped[1] = (int)map(getIndividualBendValue(1), getCalibrationMin(1), getCalibrationMax(1), 100, 0);
+    valMapped[2] = (int)map(getIndividualBendValue(2), getCalibrationMin(2), getCalibrationMax(2), 100, 0);
+    valMapped[3] = (int)map(getIndividualBendValue(3), getCalibrationMin(3), getCalibrationMax(3), 100, 0);
+    valMapped[4] = (int)map(getIndividualBendValue(4), getCalibrationMin(4), getCalibrationMax(4), 100, 0);
   }
   
   // Getters
@@ -364,11 +370,21 @@ void calibrateSensorMax()
 
 void updateGUISliders()
 {
-  controlp5.getController("Thumb").setValue(sensor.getIndividualBendValue(0));
-  controlp5.getController("Index").setValue(sensor.getIndividualBendValue(1));
-  controlp5.getController("Middle").setValue(sensor.getIndividualBendValue(2));
-  controlp5.getController("Ring").setValue(sensor.getIndividualBendValue(3));
-  controlp5.getController("Pinky").setValue(sensor.getIndividualBendValue(4));
+  String s[] = {"Thumb", "Index", "Middle", "Ring", "Pinky"};
+  
+  for (int i = 0; i < 5; i++)
+  {
+    controlp5.getController(s[i]).setValue(sensor.valMapped[i]);
+    
+    if (!activeGrace)
+    {
+      enableButton(s[i]);
+    }
+    else
+    {
+      
+    }
+  }
 }
 
 void enableButton(String s)  // only aesthetic
@@ -400,6 +416,7 @@ void validationRoutine()
         continue this until all fingers are correct
         
         vibration motor command: VD
+        staggered motor command: VS
       */
       
       boolean correctFingers[] = new boolean[5];
@@ -418,7 +435,7 @@ void validationRoutine()
       {
         if (values[i].equals("L"))
         {
-          if (sensor.valMapped[i] <= VALIDATION_M_THRESHOLD)
+          if (sensor.valMapped[i] >= VALIDATION_M_THRESHOLD)
           {
             print("Finger "); print(i); println(" is correct in L");
             correctFingers[i] = true;
@@ -431,7 +448,7 @@ void validationRoutine()
         }
         else if (values[i].equals("M"))
         {
-          if (VALIDATION_M_THRESHOLD < sensor.valMapped[i] && sensor.valMapped[i] <= VALIDATION_H_THRESHOLD)
+          if (VALIDATION_M_THRESHOLD > sensor.valMapped[i] && sensor.valMapped[i] >= VALIDATION_H_THRESHOLD)
           {
             print("Finger "); print(i); println(" is correct in M");
             correctFingers[i] = true;
@@ -444,7 +461,7 @@ void validationRoutine()
         }
         else if (values[i].equals("H"))
         {
-          if (VALIDATION_M_THRESHOLD < sensor.valMapped[i])
+          if (VALIDATION_M_THRESHOLD > sensor.valMapped[i])
           {
             print("Finger "); print(i); println(" is correct in H");
             correctFingers[i] = true;
@@ -473,7 +490,10 @@ void validationRoutine()
         }
         n += 32;
         char c = ((char)n);
-        sendCommand("VD" + c);
+        // regular command - sendCommand("VD" + c);
+        sendCommand("VS" + c);
+        // receive command from buffer to continue operation
+        delay(1500);
       }
       
       initialGrace = millis();
@@ -567,6 +587,19 @@ public void Previous()
     {
       enableButton("Next");
     }
+  }
+}
+
+public void StartStop()
+{
+  if (activeGrace)
+  {
+    activeGrace = false;
+  }
+  else
+  {
+    activeGrace = true;
+    initialGrace = millis();
   }
 }
 
