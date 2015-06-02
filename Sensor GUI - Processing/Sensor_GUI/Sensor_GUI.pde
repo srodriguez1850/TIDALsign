@@ -22,8 +22,8 @@ Textlabel textlabel2;
 // ==================
 public static final int MAX_DATABASE_SIZE = 50;
 public static final int CALIBRATION_PERIOD = 3000;
-public static final int VALIDATION_M_THRESHOLD = 33;
-public static final int VALIDATION_H_THRESHOLD = 67;
+public static final int VALIDATION_M_THRESHOLD = 67;
+public static final int VALIDATION_H_THRESHOLD = 33;
 public static final int VALIDATION_GPERIOD = 3000;
 
 // ================
@@ -72,13 +72,13 @@ void setup()
   controlp5.addSlider("Thumb")
            .setRange(0, 100)
            .setValue(0)
-           .setPosition(230, 50)
+           .setPosition(30, 50)
            .setSize(20, 100);
   // Index slider
   controlp5.addSlider("Index")
            .setRange(0, 100)
            .setValue(0)
-           .setPosition(180, 50)
+           .setPosition(80, 50)
            .setSize(20, 100);
   // Middle slider
   controlp5.addSlider("Middle")
@@ -90,13 +90,13 @@ void setup()
   controlp5.addSlider("Ring")
            .setRange(0, 100)
            .setValue(0)
-           .setPosition(80, 50)
+           .setPosition(180, 50)
            .setSize(20, 100);
   // Pinky slider
   controlp5.addSlider("Pinky")
            .setRange(0, 100)
            .setValue(0)
-           .setPosition(30, 50)
+           .setPosition(230, 50)
            .setSize(20, 100);
   // Calibrate button
   controlp5.addButton("MinCalibrate")
@@ -370,6 +370,15 @@ void calibrateSensorMax()
 
 void updateGUISliders()
 {
+  //////////////////////////////////////////////////////////
+  // Grabbing data from db places a null object in index 0
+  String[] bufferVal = db.signData[currentDBIndex].split("");
+  String[] values = new String[5];
+  for (int i = 0; i < 5; i++)
+  {
+    values[i] = bufferVal[i + 1];
+  }
+  //////////////////////////////////////////////////////////
   String s[] = {"Thumb", "Index", "Middle", "Ring", "Pinky"};
   
   for (int i = 0; i < 5; i++)
@@ -382,7 +391,46 @@ void updateGUISliders()
     }
     else
     {
-      
+      if (values[i].equals("L"))
+      {
+        if (sensor.valMapped[i] >= VALIDATION_M_THRESHOLD)
+        {
+          controlp5.controller(s[i]).setColorBackground(color(0, 102, 0));
+          controlp5.controller(s[i]).setColorForeground(color(0, 170, 0));
+          controlp5.controller(s[i]).setColorActive(color(0, 255, 0));
+        }
+        else
+        {
+          enableButton(s[i]);
+        }
+      }
+      else if (values[i].equals("M"))
+      {
+        if (VALIDATION_M_THRESHOLD > sensor.valMapped[i] && sensor.valMapped[i] >= VALIDATION_H_THRESHOLD)
+        {
+          controlp5.controller(s[i]).setColorBackground(color(0, 102, 0));
+          controlp5.controller(s[i]).setColorForeground(color(0, 170, 0));
+          controlp5.controller(s[i]).setColorActive(color(0, 255, 0));
+        }
+        else
+        {
+          enableButton(s[i]);
+        }
+      }
+      else if (values[i].equals("H"))
+      {
+        if (VALIDATION_M_THRESHOLD > sensor.valMapped[i])
+        {
+          controlp5.controller(s[i]).setColorBackground(color(0, 102, 0));
+          controlp5.controller(s[i]).setColorForeground(color(0, 170, 0));
+          controlp5.controller(s[i]).setColorActive(color(0, 255, 0));
+        }
+        else
+        {
+          enableButton(s[i]);
+        }
+      }
+      else break;
     }
   }
 }
@@ -528,13 +576,14 @@ void draw()
   delay(50);
   sensor.setBendValue();
   sensor.setMappedValue();
-  updateGUISliders();
   
   // Check user input routine
   if (activeGrace)
   {
     validationRoutine();
   }
+  
+  updateGUISliders();
 }
 
 // ==========================
