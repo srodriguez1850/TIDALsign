@@ -7,11 +7,15 @@ EECS 395: Tangible Interaction Design and Learning
 */
 
 import processing.serial.*;
+import ddf.minim.*;
 import controlP5.*;
 
 Serial arduino;
 Sensor sensor;
 SignDatabase db;
+
+AudioPlayer player;
+Minim minim;
 
 ControlP5 controlp5;
 Textlabel textlabel1;
@@ -48,6 +52,10 @@ void setup()
   {
     exit();
   }
+  
+  // Initialize sound engine
+  minim = new Minim(this);
+  player = minim.loadFile("ring.mp3", 2048);
   
   // Initialize sensor
   sensor = new Sensor();
@@ -401,7 +409,12 @@ void updateGUISliders()
         }
         else
         {
-          enableButton(s[i]);
+          int BGmap = (int)map(sensor.valMapped[i], 0, 100, 0, 102);
+          int FGmap = (int)map(sensor.valMapped[i], 0, 100, 0, 170);
+          int CAmap = (int)map(sensor.valMapped[i], 0, 100, 0, 255);
+          controlp5.controller(s[i]).setColorBackground(color(102 - BGmap, BGmap, 0));
+          controlp5.controller(s[i]).setColorForeground(color(170 - FGmap, FGmap, 0));
+          controlp5.controller(s[i]).setColorActive(color(255 - CAmap, CAmap, 0));
         }
       }
       else if (values[i].equals("M"))
@@ -414,12 +427,30 @@ void updateGUISliders()
         }
         else
         {
-          enableButton(s[i]);
+          int BGmapH = (int)map(sensor.valMapped[i], 0, 50, 102, 0);
+          int FGmapH = (int)map(sensor.valMapped[i], 0, 50, 170, 0);
+          int CAmapH = (int)map(sensor.valMapped[i], 0, 50, 255, 0);
+          int BGmapL = (int)map(sensor.valMapped[i], 50, 100, 102, 0);
+          int FGmapL = (int)map(sensor.valMapped[i], 50, 100, 170, 0);
+          int CAmapL = (int)map(sensor.valMapped[i], 50, 100, 255, 0);
+          
+          if (sensor.valMapped[i] < 51)
+          {
+            controlp5.controller(s[i]).setColorBackground(color(BGmapH, 102 - BGmapH, 0));
+            controlp5.controller(s[i]).setColorForeground(color(FGmapH, 170 - FGmapH, 0));
+            controlp5.controller(s[i]).setColorActive(color(CAmapH, 255 - CAmapH, 0));
+          }
+          else
+          {
+            controlp5.controller(s[i]).setColorBackground(color(102 - BGmapL, BGmapL, 0));
+            controlp5.controller(s[i]).setColorForeground(color(170 - FGmapL, FGmapL, 0));
+            controlp5.controller(s[i]).setColorActive(color(255 - CAmapL, CAmapL, 0));
+          }
         }
       }
       else if (values[i].equals("H"))
       {
-        if (VALIDATION_M_THRESHOLD > sensor.valMapped[i])
+        if (VALIDATION_H_THRESHOLD > sensor.valMapped[i])
         {
           controlp5.controller(s[i]).setColorBackground(color(0, 102, 0));
           controlp5.controller(s[i]).setColorForeground(color(0, 170, 0));
@@ -427,7 +458,12 @@ void updateGUISliders()
         }
         else
         {
-          enableButton(s[i]);
+          int BGmap = (int)map(sensor.valMapped[i], 0, 100, 0, 102);
+          int FGmap = (int)map(sensor.valMapped[i], 0, 100, 0, 170);
+          int CAmap = (int)map(sensor.valMapped[i], 0, 100, 0, 255);
+          controlp5.controller(s[i]).setColorBackground(color(BGmap, 102 - BGmap, 0));
+          controlp5.controller(s[i]).setColorForeground(color(FGmap, 170 - FGmap, 0));
+          controlp5.controller(s[i]).setColorActive(color(CAmap, 255 - CAmap, 0));
         }
       }
       else break;
@@ -509,7 +545,7 @@ void validationRoutine()
         }
         else if (values[i].equals("H"))
         {
-          if (VALIDATION_M_THRESHOLD > sensor.valMapped[i])
+          if (VALIDATION_H_THRESHOLD > sensor.valMapped[i])
           {
             print("Finger "); print(i); println(" is correct in H");
             correctFingers[i] = true;
@@ -527,6 +563,7 @@ void validationRoutine()
       {
         activeGrace = false;
         sendCommand("VTO");
+        player.play();
         println("All fingers correct");
       }
       else
@@ -581,6 +618,12 @@ void draw()
   if (activeGrace)
   {
     validationRoutine();
+  }
+  
+  // Rewind ping sound
+  if (!player.isPlaying())
+  {
+    player.rewind();
   }
   
   updateGUISliders();
