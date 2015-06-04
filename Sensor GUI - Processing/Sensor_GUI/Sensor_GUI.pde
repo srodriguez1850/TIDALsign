@@ -38,7 +38,7 @@ void setup()
   // Setup window size and title
   size(400, 200);
   smooth();
-  frame.setTitle("Sensor GUI");
+  frame.setTitle("TidalSign");
   background(0);
   
   // Open Serial to arduino
@@ -71,7 +71,7 @@ void setup()
   controlp5.setBroadcast(false);
   // Title
   textlabel1 = controlp5.addTextlabel("Title")
-                        .setText("Sensor GUI")
+                        .setText("TidalSign GUI")
                         .setPosition(10, 10);
   textlabel2 = controlp5.addTextlabel("CurrentLetter")
                         .setText("A")
